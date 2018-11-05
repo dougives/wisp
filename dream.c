@@ -51,30 +51,6 @@ static struct Args args;
 static pcap_if_t *iflist = NULL;
 static pcap_t *live = NULL;
 
-// static void parse_device_args(char *arg, struct DeviceArgs *devargs)
-// {
-//     size_t len = strlen(arg);
-//     if (len == 0)
-//         return;
-//     for (int j = 0, h = 0; 
-//         j <= len && h < len; 
-//         ++j)
-//     {
-//         switch (arg[j])
-//         {
-//             case ',':
-//             case '\0':
-//                 assert((devargs = (struct DeviceArgs *)
-//                     realloc(devargs, 
-//                         sizeof(struct DeviceArgs) 
-//                         * (devargs->count + 1))));
-//                 devargs->names[devargs->count++] = &arg[h];
-//                 arg[j] = '\0';
-//                 h = j + 1;
-//         }
-//     }
-// }
-
 static void shutdown(int code)
 {
     if (live)
@@ -101,7 +77,6 @@ static void verify_device_name(void)
         ifnode; 
         ifnode = ifnode->next)
     {
-        //printf("ifn: %s\n", ifnode->name);
         if ((has_device |= !strncmp(args.monitor, ifnode->name, 32)))
         {
             break;
@@ -164,7 +139,6 @@ static void parse_args(int argc, char **argv)
                 continue;
             default:
                 args.monitor = argv[i];
-                // parse_device_args(argv[i], args.monitor);
                 continue;
         }
     }
@@ -192,7 +166,6 @@ void dump_fields(struct ieee80211_info info)
     }
     for (int j = 0; j < strlen(args.fields); ++j)
     {
-        // printf("%c: ", args.fields[j]);
         switch (args.fields[j])
         {
             case 'b':
@@ -236,11 +209,6 @@ void got_packet(
         // printf("control\n");
         return;
     }
-    // printf("rtap len: %d\n", rtap->it_len);
-    // printf("rtap present: %08x\nrtap dump: ", rtap->it_present);
-    // for (int i = 0; i < rtap->it_len; ++i)
-    //     printf("%02x", packet[i]);
-    // printf("\n");
     uint8_t bssid[6], stmac[6];
     memset(bssid, 0, 6);
     memset(stmac, 0, 6);
@@ -268,17 +236,6 @@ void got_packet(
     }
     assert(rtap->it_present&8);
     uint16_t freq = *(uint16_t *)(packet + 10);
-    // printf("chan: %d\n", freqtochan(freq));
-    // printf("freq: %d\nbss: ", freq);
-    // printf("bss: ");
-    // for (int i = 0; i < 6; ++i)
-    //     printf("%02x", bssid[i]);
-    // printf("\nsta: ");
-    // for (int i = 0; i < 6; ++i)
-    //     printf("%02x", stmac[i]);
-    // printf("\n----------------\n");
-    // assert(freq == 2412);
-    // pcap_breakloop((pcap_t *)args);
     dump_fields((struct ieee80211_info)
         {
             .bss = bssid,
