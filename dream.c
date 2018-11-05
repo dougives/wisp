@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <signal.h>
-
+#include <sys/time.h>
 #include <pcap/pcap.h>
 
 #define SNAPLEN 262144
@@ -13,6 +13,7 @@ struct Args
 {
     const char *monitor;
     const char *fields;
+    int only_assoc;
 };
 
 struct ieee80211_radiotap_header {
@@ -39,8 +40,9 @@ struct ieee80211_frame_header_stub {
 
 struct ieee80211_info
 {
-    char *bss;
-    char *sta;
+    uint64_t ts;
+    uint8_t *bss;
+    uint8_t *sta;
     uint16_t freq;
 };
 
@@ -72,6 +74,24 @@ static pcap_t *live = NULL;
 //         }
 //     }
 // }
+
+static void shutdown(int code)
+{
+    if (live)
+    {
+        pcap_close(live);
+    }
+    exit(code);
+}
+
+static uint64_t timestamp(void)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (uint64_t)(
+        (uint64_t)tv.tv_sec * 1000 
+        + (uint64_t)tv.tv_usec / 1000);
+}
 
 static void verify_device_name(void)
 {
@@ -115,31 +135,40 @@ static void verify_monitor_mode(void)
 
 static void print_device_args(void)
 {
-    printf("monitor: %s\n", args.monitor);
+    printf("monitor[%s]: %s\n", args.fields, args.monitor);
 }
 
 static void parse_args(int argc, char **argv)
 {
     assert(argc > 1);
-    args.fields = "cfbs";
+    memset(&args, 0, sizeof(args));
+    args.fields = "tdcfbs";
     for (int i = 1; i < argc; ++i)
     {
         switch (*argv[i])
         {
             case '-':
                 assert(argv[i][1]);
+                if (argv[i][1] == '-')
+                {
+                    switch (argv[i][2])
+                    {
+                        case 'a':
+                            args.only_assoc = 1;
+                            continue;
+                        default:
+                            assert(0);
+                            shutdown(-1);
+                    }
+                }
                 args.fields = argv[i] + 1;
+                continue;
             default:
                 args.monitor = argv[i];
                 // parse_device_args(argv[i], args.monitor);
-                break;
+                continue;
         }
     }
-}
-
-void down_device(char *name)
-{
-
 }
 
 int freqtochan(int freq)
@@ -149,35 +178,47 @@ int freqtochan(int freq)
         : 1 + (freq - 2412) / 5;
 }
 
-void print_bytes_line(const char *bytes, size_t n)
+void print_bytes(const uint8_t *bytes, size_t n)
 {
     for (int i = 0; i < n; ++i)
-        printf("%02x", bytes[n]);
-    putchar('\n');
+        printf("%02x", bytes[i]);
+    putchar(',');
 }
 
 void dump_fields(struct ieee80211_info info)
 {
-    for (int j = 1; j < strlen(args.fields) - 1; ++j)
+    if (args.only_assoc && !memcmp(info.sta, "\0\0\0\0\0\0", 6))
     {
+        return;
+    }
+    for (int j = 0; j < strlen(args.fields); ++j)
+    {
+        // printf("%c: ", args.fields[j]);
         switch (args.fields[j])
         {
             case 'b':
-                print_bytes_line(info.bss, sizeof(info.bss));
+                print_bytes(info.bss, 6);
                 continue;
             case 'c':
-                printf("%d\n", freqtochan(info.freq));
+                printf("%d,", freqtochan(info.freq));
+                continue;
+            case 'd':
+                printf("%s,", args.monitor);
                 continue;
             case 'f':
-                printf("%d\n", info.freq);
+                printf("%d,", info.freq);
                 continue;
             case 's':
-                print_bytes_line(info.sta, sizeof(info.sta));
+                print_bytes(info.sta, 6);
+                continue;
+            case 't':
+                printf("%ld,", timestamp());
                 continue;
             default:
                 assert(0);
         }
     }
+    putchar('\n');
 }
 
 void got_packet(
@@ -185,6 +226,7 @@ void got_packet(
     const struct pcap_pkthdr *header, 
     const unsigned char *packet)
 {
+    uint64_t ts = timestamp();
     if (header->caplen < sizeof(struct ieee80211_radiotap_header))
         return;
     struct ieee80211_radiotap_header *rtap = 
@@ -201,7 +243,7 @@ void got_packet(
     // for (int i = 0; i < rtap->it_len; ++i)
     //     printf("%02x", packet[i]);
     // printf("\n");
-    char bssid[6], stmac[6];
+    uint8_t bssid[6], stmac[6];
     memset(bssid, 0, 6);
     memset(stmac, 0, 6);
     switch (h80211->data[1] & 3)
@@ -230,26 +272,22 @@ void got_packet(
     uint16_t freq = *(uint16_t *)(packet + 10);
     // printf("chan: %d\n", freqtochan(freq));
     // printf("freq: %d\nbss: ", freq);
+    // printf("bss: ");
     // for (int i = 0; i < 6; ++i)
     //     printf("%02x", bssid[i]);
     // printf("\nsta: ");
     // for (int i = 0; i < 6; ++i)
     //     printf("%02x", stmac[i]);
     // printf("\n----------------\n");
-    //assert(freq == 2412);
-    //pcap_breakloop((pcap_t *)args);
+    // assert(freq == 2412);
+    // pcap_breakloop((pcap_t *)args);
     dump_fields((struct ieee80211_info)
         {
             .bss = bssid,
             .freq = freq,
             .sta = stmac,
+            .ts = ts,
         });
-}
-
-void shutdown(int code)
-{
-    pcap_close(live);
-    exit(code);
 }
 
 void listen(void)
@@ -269,7 +307,6 @@ void signal_handler(int sig)
         case SIGINT:
         case SIGABRT:
         case SIGKILL:
-            printf("caught signal.\n");
             if (live)
             {
                 pcap_breakloop(live);
@@ -280,13 +317,16 @@ void signal_handler(int sig)
 
 int main(int argc, char **argv)
 {   
+    signal(SIGINT, signal_handler);
+    signal(SIGABRT, signal_handler);
+    signal(SIGKILL, signal_handler);
     memset(pcaperr, 0, sizeof(pcaperr));
     parse_args(argc, argv);
     print_device_args();
     verify_device_name();
     verify_monitor_mode();
     listen();
+    putchar('\n');
     shutdown(0);
-    printf("\n");
     return 0;
 }
