@@ -13,6 +13,7 @@ struct Args
 {
     const char *monitor;
     const char *fields;
+    const char *dump;
     int only_assoc;
 };
 
@@ -50,9 +51,14 @@ static char pcaperr[PCAP_ERRBUF_SIZE];
 static struct Args args;
 static pcap_if_t *iflist = NULL;
 static pcap_t *live = NULL;
+static pcap_dumper_t *dumper = NULL;
 
 static void shutdown(int code)
 {
+    if (dumper)
+    {
+        pcap_dump_close(dumper);
+    }
     if (live)
     {
         pcap_close(live);
@@ -125,12 +131,22 @@ static void parse_args(int argc, char **argv)
                 assert(argv[i][1]);
                 if (argv[i][1] == '-')
                 {
+                    printf("%c\n", argv[i][2]);
                     switch (argv[i][2])
                     {
                         case 'a':
                             args.only_assoc = 1;
                             continue;
+                        case 'd':
+                            ++i;
+                            if (i >= argc)
+                            {
+                                goto bad_arg;
+                            }
+                            args.dump = argv[i];
+                            continue;
                         default:
+                        bad_arg:
                             assert(0);
                             shutdown(-1);
                     }
@@ -198,6 +214,11 @@ void got_packet(
     const struct pcap_pkthdr *header, 
     const unsigned char *packet)
 {
+    if (dumper)
+    {
+        pcap_dump((unsigned char *)dumper, header, packet);
+        pcap_dump_flush(dumper);
+    }
     if (header->caplen < sizeof(struct ieee80211_radiotap_header))
         return;
     struct ieee80211_radiotap_header *rtap = 
@@ -252,6 +273,11 @@ void listen(void)
         args.monitor, 
         SNAPLEN, 1, 0, pcaperr);
     assert(live);
+    if (args.dump)
+    {
+        dumper = pcap_dump_open(live, args.dump);
+        assert(dumper);
+    }
     pcap_loop(live, -1, &got_packet, (unsigned char *)live);
 }
 
