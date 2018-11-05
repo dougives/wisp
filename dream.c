@@ -84,9 +84,8 @@ static void shutdown(int code)
     exit(code);
 }
 
-static uint64_t timestamp(void)
+static uint64_t timestamp(struct timeval tv)
 {
-    struct timeval tv;
     gettimeofday(&tv, NULL);
     return (uint64_t)(
         (uint64_t)tv.tv_sec * 1000 
@@ -212,7 +211,7 @@ void dump_fields(struct ieee80211_info info)
                 print_bytes(info.sta, 6);
                 continue;
             case 't':
-                printf("%ld,", timestamp());
+                printf("%ld,", info.ts);
                 continue;
             default:
                 assert(0);
@@ -226,7 +225,6 @@ void got_packet(
     const struct pcap_pkthdr *header, 
     const unsigned char *packet)
 {
-    uint64_t ts = timestamp();
     if (header->caplen < sizeof(struct ieee80211_radiotap_header))
         return;
     struct ieee80211_radiotap_header *rtap = 
@@ -286,7 +284,7 @@ void got_packet(
             .bss = bssid,
             .freq = freq,
             .sta = stmac,
-            .ts = ts,
+            .ts = timestamp(header->ts),
         });
 }
 
