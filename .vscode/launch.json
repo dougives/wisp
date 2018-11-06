@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "wisp",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/wisp.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "(gdb) dream",
             "type": "cppdbg",
             "request": "launch",

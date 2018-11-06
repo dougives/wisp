@@ -1,0 +1,14 @@
+{
+    "monitors": {
+        "wlx00c0ca590ce1": {
+            "channel": 1
+        }
+    },
+    
+    "injector": "wlx00c0ca590ce1",
+
+    "timing": {
+        "delay": 4000,
+        "jitter": 1500
+    }
+}
