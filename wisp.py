@@ -156,6 +156,7 @@ class Wisp:
                         for line in self.info.splitlines() ] 
                     if match ])
             self.mon = None
+            self.start()
  
     interfering_processes = [
         'wpa_action', 
