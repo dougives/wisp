@@ -3,10 +3,12 @@ import os
 import json
 from subprocess import call, run, check_output, Popen, DEVNULL, PIPE
 import re
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 from time import time
 from signal import signal, SIGKILL, SIGABRT, SIGINT
 import sys
+import queue
+from threading import Event
 
 basepath = os.path.dirname(os.path.realpath(__file__))   
 def _find_tools():
@@ -139,18 +141,14 @@ class Wisp:
                 cwd=basepath,
                 text=True)
             assert dream
-            def read():
+            try:
                 for line in iter(dream.stdout.readline,''):
-                    sys.stdout.write(line)
-                    sys.stdout.flush()
-                    # line = dream.stdout.readline().strip()
-                    # if not line:
-                    #     break
-                    # match = dream_re.match(line)
-                    # if match:
-                    #     sys.stdout.write(str(match.groups()) + '\n')
-                    #     sys.stdout.flush()
-            read()
+                    line = line.rstrip()
+                    match = dream_re.match(line)
+                    if match:
+                        queue.put_nowait(match.groups())
+            except KeyboardInterrupt:
+                pass
         def start(self):
             if self.mon:
                 self._check_mon_type()
@@ -164,12 +162,12 @@ class Wisp:
             assert not Wisp._call_tool('iw', 
                 'dev', self.dev, 'del')
             Wisp._set_link(self.mon, 'up')
-        def listen(self):
+        def listen(self, queue):
             assert self.mon
             self.set_channel(self.channel)
             self.dream = Process(
                 target=self._dream_process, 
-                args=(None,))
+                args=(queue,))
             self.dream.start()
         def stop(self):
             if self.dream:
@@ -249,6 +247,7 @@ class Wisp:
     def _deauth(self, channel, bss, sta=None, count=4): 
         assert 0
         assert self.injector.mon
+        assert self.queue
         self.injector.set_channel(channel)
         def sep_mac(mac):
             assert isinstance(mac, bytes)
@@ -265,17 +264,9 @@ class Wisp:
             cwd=basepath,
             text=True)
         assert aireplay
-
-        line = aireplay.stdout.readline().strip()
-        while line:
+        for line in iter(aireplay.stdout.readline, ''):
             print(line)
-            line = aireplay.stdout.readline()
-
-    def _run_process(self):
-        self.dream = Process(target=self._dream_process)
-        self.dream.start()
-        pass
-
+        
     def run(self):
         dev = list(self.monitors.keys())[0]
         self._handle_rfkill(dev)
@@ -288,16 +279,30 @@ class Wisp:
                     stderr=DEVNULL)
         for process in self.interfering_processes:
             self._silent_call('kill', '-9', process)
-        mon = self.monitors['wlx9cefd5fd276a']
-        mon.start()
-        mon.listen()
-        # assert 0
-        # for mon in self.monitors:
-        #     mon.start()
-        #     mon.dream()
+        self.queue = Queue()
+        for mon in self.monitors.values():
+            mon.start()
+            mon.listen(self.queue)
         # self.injector.start()
-
-        pass
+        self.signal = Event()
+        self.signal.clear()
+        try:
+            while not self.signal.is_set():
+                bss = None
+                sta = None
+                try:
+                    bss, sta = self.queue.get(True, 500)
+                except queue.Empty:
+                    continue
+                except KeyboardInterrupt as e:
+                    raise e
+                print(bss, sta)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            for mon in self.monitors.values():
+                mon.stop()
+            self.queue.close()
 
     def __init__(self, injector, monitors, delay=4000, jitter=1500):
         self.check_permissions()
