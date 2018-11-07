@@ -11,7 +11,8 @@
     "injector": "wlx00c0ca590ce1",
 
     "timing": {
-        "delay": 4000,
-        "jitter": 1500
+        "delay": 6000,
+        "jitter": 2000,
+        "stale": 300000
     }
 }
