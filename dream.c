@@ -207,6 +207,7 @@ void dump_fields(struct ieee80211_info info)
         }
     }
     putchar('\n');
+    fflush(stdout);
 }
 
 void got_packet(

@@ -132,6 +132,7 @@ class Wisp:
                 + ([ self.mon ])
             print(cmd)
             dream = Popen(cmd, 
+                bufsize=-1,
                 stdin=DEVNULL,
                 stdout=PIPE,
                 stderr=DEVNULL,
@@ -139,11 +140,16 @@ class Wisp:
                 text=True)
             assert dream
             def read():
-                line = dream.stdout.readline().strip()
-                while line:
+                for line in iter(dream.stdout.readline,''):
                     sys.stdout.write(line)
                     sys.stdout.flush()
-                    line = dream.stdout.readline()
+                    # line = dream.stdout.readline().strip()
+                    # if not line:
+                    #     break
+                    # match = dream_re.match(line)
+                    # if match:
+                    #     sys.stdout.write(str(match.groups()) + '\n')
+                    #     sys.stdout.flush()
             read()
         def start(self):
             if self.mon:
