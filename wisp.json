@@ -1,7 +1,10 @@
 {
     "monitors": {
-        "wlx00c0ca590ce1": {
+        "wlx9cefd5fd2769": {
             "channel": 1
+        },
+        "wlx9cefd5fd276a": {
+            "channel": 11
         }
     },
     

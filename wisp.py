@@ -1,10 +1,12 @@
 import shutil
 import os
 import json
-from subprocess import call, run, check_output, DEVNULL
+from subprocess import call, run, check_output, Popen, DEVNULL, PIPE
 import re
-
-import subprocess
+from multiprocessing import Process
+from time import time
+from signal import signal, SIGKILL, SIGABRT, SIGINT
+import sys
 
 basepath = os.path.dirname(os.path.realpath(__file__))   
 def _find_tools():
@@ -12,6 +14,7 @@ def _find_tools():
         'iw',
         'ip',
         'rfkill',
+        'aireplay-ng',
     ]
     project_tools = [
         'dream'
@@ -44,7 +47,7 @@ class Wisp:
             config = json.load(file)
         assert config
         return Wisp(
-            injector=config['injector'],
+            injector=Wisp.Monitor(config['injector'], 1),
             monitors=[ Wisp.Monitor(dev, **config['monitors'][dev])
                 for dev in config['monitors'].keys() ],
             delay=config['timing']['delay'],
@@ -72,18 +75,21 @@ class Wisp:
     def _handle_rfkill(dev):
         assert dev
         path = f'/sys/class/net/{dev}/phy80211/'
-        assert os.path.isdir(path)
+        if not os.path.isdir(path):
+            return
         index = int(next(node 
             for node in os.listdir(path) 
             if node.startswith('rfkill'))[len('rfkill'):])
-        assert index
         if Wisp._call_tool('rfkill', 'list', index):
             assert not Wisp._call_tool('rfkill', 'unblock', index)
 
     @staticmethod
     def _set_link(dev, state):
-        assert not Wisp._call_tool(
+        e = Wisp._call_tool(
             'ip', 'link', 'set', 'dev', dev, state)
+        print(dev, state, e)
+        assert not e
+        return
 
     class Monitor:
         @staticmethod
@@ -94,9 +100,8 @@ class Wisp:
                 output = file.read()
             assert output
             return output.strip()
-        @staticmethod
-        def _create_mon_name(dev):
-            return f'{dev[:9]}mon'
+        def _create_mon_name(self):
+            return f'{self.phy}wisp'
         def _check_mon_type(self):
             typepath = \
                 f'/sys/class/ieee80211/{self.phy}' \
@@ -108,7 +113,7 @@ class Wisp:
             return
         _channel_re : re.Pattern = re.compile(
             r'^\s*\*\s+(\d+)\s+MHz\s+\[(\d+)\]\s+.*$')
-        def _set_channel(self, channel, mon=None):
+        def set_channel(self, channel, mon=None):
             assert not Wisp._call_tool('iw',
                 'dev', mon if mon else self.mon,
                 'set', 'freq', self.channel_map[channel])
@@ -116,11 +121,38 @@ class Wisp:
         #     assert not Wisp._call_tool('iw',
         #         'dev', self.dev,
         #         'set', 'freq', self.channel_map[channel])
+        def _dream_process(self, queue, assoc=False, dump=True):
+            dream_re = re.compile(
+                r'^([0-9A-Fa-f]{12}),([0-9A-Fa-f]{12}),$')
+            cmd = [ tools['dream'] ] \
+                + ([ '--a' ] if assoc else []) \
+                + ([ '--d', f'{self.phy}-{int(time())}.cap' ] \
+                    if dump else []) \
+                + ([ '-bs' ]) \
+                + ([ self.mon ])
+            print(cmd)
+            dream = Popen(cmd, 
+                stdin=DEVNULL,
+                stdout=PIPE,
+                stderr=DEVNULL,
+                cwd=basepath,
+                text=True)
+            assert dream
+            def read():
+                line = dream.stdout.readline().strip()
+                while line:
+                    match = dream_re.match(line)
+                    if match:
+                        sys.stdout.write(str(match.groups()) + '\n')
+                        sys.stdout.flush()
+                    line = dream.stdout.readline()
+            read()
         def start(self):
             if self.mon:
                 self._check_mon_type()
                 return
-            self.mon = self._create_mon_name(self.dev)
+            Wisp._set_link(self.dev, 'down')
+            self.mon = self._create_mon_name()
             assert not Wisp._call_tool('iw', 
                 'phy', self.phy, 
                 'interface', 'add', self.mon,
@@ -128,8 +160,20 @@ class Wisp:
             assert not Wisp._call_tool('iw', 
                 'dev', self.dev, 'del')
             Wisp._set_link(self.mon, 'up')
-            self._set_channel(self.channel)
+        def listen(self):
+            assert self.mon
+            self.set_channel(self.channel)
+            self.dream = Process(
+                target=self._dream_process, 
+                args=(None,))
+            self.dream.start()
         def stop(self):
+            if self.dream:
+                self.dream.terminate()
+                while self.dream.is_alive():
+                    pass
+            self.dream.close()
+            self.dream = None
             assert self.mon
             self._check_mon_type()
             assert not Wisp._call_tool('iw', 
@@ -156,8 +200,19 @@ class Wisp:
                         for line in self.info.splitlines() ] 
                     if match ])
             self.mon = None
-            self.start()
- 
+            self.dream = None
+
+        def __eq__(self, other):
+            if isinstance(other, Monitor):
+                eq = self.phy == other.phy
+                if eq:
+                    assert self.dev == other.dev
+                    assert self.channel == other.channel
+                    assert self.mon == other.mon
+            return NotImplemented
+        def __hash__(self):
+            return int.from_bytes(self.phy.encode(), 'little')
+
     interfering_processes = [
         'wpa_action', 
         'wpa_supplicant', 
@@ -180,21 +235,46 @@ class Wisp:
         'avahi-daemon',
     ]
 
-    def __init__(self, injector, monitors, delay=4000, jitter=1500):
-        self.check_permissions()
-        #self.tools : dict = self.find_tools()
-        assert tools
-        self.injector = injector
-        assert self.injector
-        self.monitors = dict([ (m.dev, m) for m in monitors ])
-        assert self.monitors
-        self.delay = delay
-        self.jitter = jitter
+    DEAUTH_REQ = \
+        '\xC0\x00\x3A\x01' \
+        '\xCC\xCC\xCC\xCC\xCC\xCC' \
+        '\xBB\xBB\xBB\xBB\xBB\xBB' \
+        '\xBB\xBB\xBB\xBB\xBB\xBB' \
+        '\x00\x00\x07\x00'
+
+    def _deauth(self, channel, bss, sta=None, count=4): 
+        assert 0
+        assert self.injector.mon
+        self.injector.set_channel(channel)
+        def sep_mac(mac):
+            assert isinstance(mac, bytes)
+            assert len(mac) == 6
+            return ':'.join(f'{c:02x}' for c in mac)
+        aireplay = Popen([ tools['aireplay-ng'], '-0' ]
+            + [ count ]
+            + [ '-a', sep_mac(bss) ]
+            + [ '-c', sep_mac(sta) ] if sta else []
+            + [ self.injector.mon ],
+            stdin=DEVNULL,
+            stdout=PIPE,
+            stderr=DEVNULL,
+            cwd=basepath,
+            text=True)
+        assert aireplay
+
+        line = aireplay.stdout.readline().strip()
+        while line:
+            print(line)
+            line = aireplay.stdout.readline()
+
+    def _run_process(self):
+        self.dream = Process(target=self._dream_process)
+        self.dream.start()
+        pass
 
     def run(self):
         dev = list(self.monitors.keys())[0]
         self._handle_rfkill(dev)
-        self._set_link(dev, 'down')
         service_cmd = shutil.which('service')
         if service_cmd:
             for service in self.interfering_services:
@@ -204,10 +284,30 @@ class Wisp:
                     stderr=DEVNULL)
         for process in self.interfering_processes:
             self._silent_call('kill', '-9', process)
-        #for dev in list(self.monitors.keys()):
-        #    self._call_tool('iw', dev, 'set', 'monitor', 
+        mon = self.monitors['wlx9cefd5fd276a']
+        mon.start()
+        mon.listen()
+        # assert 0
+        # for mon in self.monitors:
+        #     mon.start()
+        #     mon.dream()
+        # self.injector.start()
+
         pass
 
+    def __init__(self, injector, monitors, delay=4000, jitter=1500):
+        self.check_permissions()
+        #self.tools : dict = self.find_tools()
+        assert tools
+        self.monitors = dict([ (m.dev, m) for m in monitors ])
+        assert self.monitors
+        for mon in self.monitors.values():
+            assert not mon.mon
+        self.injector = injector
+        assert self.injector
+        assert self.injector not in self.monitors
+        self.delay = delay
+        self.jitter = jitter
 
 def main():
     wisp = Wisp.from_config()

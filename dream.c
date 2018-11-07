@@ -303,7 +303,7 @@ int main(int argc, char **argv)
     signal(SIGKILL, signal_handler);
     memset(pcaperr, 0, sizeof(pcaperr));
     parse_args(argc, argv);
-    print_device_args();
+    //print_device_args();
     verify_device_name();
     verify_monitor_mode();
     listen();
