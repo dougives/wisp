@@ -8,7 +8,7 @@ from time import time
 from signal import signal, SIGKILL, SIGABRT, SIGINT
 import sys
 import queue
-from secrets import randbelow
+from secrets import randbelow, token_hex
 
 basepath = os.path.dirname(os.path.realpath(__file__))   
 def _find_tools():
@@ -95,6 +95,7 @@ class Wisp:
         return
 
     class Monitor:
+        static_token = token_hex(8)
         @staticmethod
         def _get_phy(dev):
             output = None
@@ -129,10 +130,10 @@ class Wisp:
                 r'^(\d+),(\d+),([0-9A-Fa-f]{12}),([0-9A-Fa-f]{12}),$')
             cmd = [ tools['dream'] ] \
                 + ([ '--a' ] if assoc else []) \
-                + ([ '--d', f'{self.phy}-{int(time())}.cap' ] \
+                + ([ '--d', f'{self.phy}-{self.static_token}.cap' ] \
                     if dump else []) \
-                + ([ '-tcbs' ]) \
-                + ([ self.mon ])
+                + [ '-tcbs' ] \
+                + [ self.mon ]
             print(' '.join(cmd))
             dream = Popen(cmd, 
                 bufsize=-1,
@@ -204,7 +205,7 @@ class Wisp:
                     if match ])
             self.mon = None
             self.dream = None
-            print(self.channel_map)
+            #print(self.channel_map)
 
         def __eq__(self, other):
             if isinstance(other, Monitor):
