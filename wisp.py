@@ -133,7 +133,7 @@ class Wisp:
                     if dump else []) \
                 + ([ '-tcbs' ]) \
                 + ([ self.mon ])
-            print(cmd)
+            print(' '.join(cmd))
             dream = Popen(cmd, 
                 bufsize=-1,
                 stdin=DEVNULL,
@@ -257,6 +257,11 @@ class Wisp:
                 mac = bytes.fromhex(mac)
             assert len(mac) == 6
             return ':'.join(f'{c:02x}' for c in mac)
+        print(' '.join([ tools['aireplay-ng'], '-0' ]
+            + [ str(count) ]
+            + [ '-a', sep_mac(bss) ]
+            + ([ '-c', sep_mac(sta) ] if sta else [])
+            + [ self.injector.mon ]))
         aireplay = Popen([ tools['aireplay-ng'], '-0' ]
             + [ str(count) ]
             + [ '-a', sep_mac(bss) ]
@@ -268,8 +273,8 @@ class Wisp:
             cwd=basepath,
             text=True)
         assert aireplay
-        for line in iter(aireplay.stdout.readline, ''):
-            print(line)
+        #for line in iter(aireplay.stdout.readline, ''):
+            #print(line)
         
     def run(self):
         dev = list(self.monitors.keys())[0]
@@ -315,6 +320,8 @@ class Wisp:
                 except KeyboardInterrupt as e:
                     raise e
                 if all(c == 'f' or c == '0' for c in bss):
+                    continue
+                if bss == sta:
                     continue
                 ###########################
                 if sta != '44850074234a':# f0ee10bf2db0':
