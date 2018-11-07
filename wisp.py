@@ -141,10 +141,8 @@ class Wisp:
             def read():
                 line = dream.stdout.readline().strip()
                 while line:
-                    match = dream_re.match(line)
-                    if match:
-                        sys.stdout.write(str(match.groups()) + '\n')
-                        sys.stdout.flush()
+                    sys.stdout.write(line)
+                    sys.stdout.flush()
                     line = dream.stdout.readline()
             read()
         def start(self):

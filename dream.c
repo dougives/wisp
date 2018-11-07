@@ -131,7 +131,7 @@ static void parse_args(int argc, char **argv)
                 assert(argv[i][1]);
                 if (argv[i][1] == '-')
                 {
-                    printf("%c\n", argv[i][2]);
+                    //printf("%c\n", argv[i][2]);
                     switch (argv[i][2])
                     {
                         case 'a':
