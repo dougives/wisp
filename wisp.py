@@ -248,11 +248,11 @@ class Wisp:
                 mac = bytes.fromhex(mac)
             assert len(mac) == 6
             return ':'.join(f'{c:02x}' for c in mac)
-        cmd = [ tools['aireplay-ng'], '-0' ]
-            + [ str(count) ]
-            + [ '-a', sep_mac(bss) ]
-            + ([ '-c', sep_mac(sta) ] if sta else [])
-            + [ self.injector.mon ]
+        cmd = [ tools['aireplay-ng'], '-0' ] \
+            + [ str(count) ] \
+            + [ '-a', sep_mac(bss) ] \
+            + ([ '-c', sep_mac(sta) ] if sta else []) \
+            + [ self.injector.mon ] 
         print(' '.join(cmd))
         aireplay = Popen(cmd,
             stdin=DEVNULL,
