@@ -21,7 +21,7 @@ For maximum effectiveness, you should also have:
 * A bag or enclosure of any sort, to avoid confusing and awkward conversations. Avoid taking the assembled kit as a carry-on item, believe me.
 
 ### Remote Control
-I personally use [ConnectBot](https://connectbot.org/) with (Hacker's Keyboard)[https://github.com/klausw/hackerskeyboard] on my cell phone for controlling kits like this over SSH. It draws the least attention and fits in your pocket.
+I personally use [ConnectBot](https://connectbot.org/) with [Hacker's Keyboard](https://github.com/klausw/hackerskeyboard) on my cell phone for controlling kits like this over SSH. It draws the least attention and fits in your pocket.
 
 I suggest that the device be configured to automatically connect to a VPN that you host, to avoid any routing/NAT issues. Setting up [OpenVPN](https://openvpn.net/) on a cloud host is the easiest way to achieve this. Be sure to use OpenVPN's `client-to-client` server configuration directive, or have forwarding configured otherwise.
 
