@@ -36,6 +36,13 @@ Another solution is to provide additional power to the USB hub using a splitter 
 
 If you are providing remote control through a tethered cell phone, you should ensure the battery has a full charge when starting the kit, if possible. Some cheap devices may not draw enough current to keep up with the power consumed by a constant data connection.
 
+### Thermal Management
+The combination of multiple radios, the Raspberry Pi, and cellular modem will get very toasty. The Panda PAU06's run especially hot. If you don't mind the heat, you will end up with melted radios or worse. Do a test run with your chosen bag/enclosure at room temperature beforehand, to ensure it provides suitable heat dissipation. If you must use the kit in a hot environment, like inside a vehicle on a warm day, take some extra steps to prevent overheating. In the case of a vehicle, setting the climate controls for A/C and remote starting the vehicle intermittently will suffice.
+
+Some cheap cell phones are prone to overheating due to the combination of the additional gear and the need to regularly transmit data. They may shut off under these conditions, preventing remote control. Placing the phone in a separate compartment from the rest of the kit will help, but you are better off using a different device.
+
+If you intend to operate the kit covertly, keep in mind that the heat may draw attention in unexpected ways. If it is left on the dashboard of a vehicle during a snowy day, it will melt the snow and ice. There will be a nice round clear space on the windshield, centering the kit in view, where everything else is otherwise covered in snow!
+
 ## Software
 ### Wisp
 Wisp install instructions are detailed in [rpi-install.md](https://raw.githubusercontent.com/dougives/wisp/master/rpi-install.md). The steps should be similar for non-raspian systems. Wisp depends on `aireplay-ng` from [aircrack-ng](http://www.aircrack-ng.org/) to transmit deauth frames. Notably, you will need to build Python-3.7.1 for the device, which is also described in the rpi-install.md file.
