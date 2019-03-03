@@ -3,7 +3,7 @@
 ## Bootstrapping
 ### Update:
 - Login and `sudo -i`.
-- `apt update && apt upgrade -y && apt install aircrack-ng bluez-tools build-essentials gpsd libpcap0.8 && rpi-update && libreadline-dev uuid-dev libffi-dev libncurses-dev libssl-dev libsqlite3-dev && reboot`
+- `apt update && apt upgrade -y && rpi-update && apt install aircrack-ng bluez-tools build-essentials gpsd libpcap0.8 libreadline-dev uuid-dev libffi-dev libncurses-dev libssl-dev libsqlite3-dev libpcap0.8-dev && reboot`
 
 ### Basic System Configuration 
 - Login again, `sudo -i`.
