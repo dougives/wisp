@@ -55,12 +55,13 @@ Dream is a tool for monitoring 802.11 traffic with a line-greppable output. It a
 * `--a`: Only report traffic from associated clients. (All packets are still logged to disk if --d is enabled.)
 * `--d (file)`: Dump packets to the specified file.
 * `-[b][c][d][f][s][t]`: Specifies which fields to output per line, specifically:
-* `b`: BSS
-* `c`: Channel number.
-* `d`: Name of the device which received the packet.
-* `f`: Frequency.
-* `s`: Station (STA).
-* `t`: Pcap timestamp.
+  * `b`: BSS
+  * `c`: Channel number.
+  * `d`: Name of the device which received the packet.
+  * `f`: Frequency.
+  * `s`: Station (STA).
+  * `t`: Pcap timestamp.
+
 These fields are always printed in the same order, regardless of the order specified. (That is, `-bcst` is equivalent to `-svtb`.)
 
 ## Configuration
@@ -69,9 +70,9 @@ Wisp reads a json formatted file named [wisp.json](https://raw.githubusercontent
 * `channel`: The channel for the device to monitor.
 * `injector`: The device to be configured to inject deauth frames.
 * `timing`: Lists several timing parameters, all given in milliseconds:
-* `delay`: The delay between deauth packets sent, per client.
-* `jitter`: Modulates the delay time by a random amount, in the range given.
-* `stale`: Amount of time a client is not seen before being removed from the delay list. Has little practical effect unless it is close to the delay timespan.
+  * `delay`: The delay between deauth packets sent, per client.
+  * `jitter`: Modulates the delay time by a random amount, in the range given.
+  * `stale`: Amount of time a client is not seen before being removed from the delay list. Has little practical effect unless it is close to the delay timespan.
 
 ## Invocation
 All parameters are loaded from `wisp.json`, so wisp is invoked simply: `python3 ./wisk.py`
