@@ -67,7 +67,7 @@ These fields are always printed in the same order, regardless of the order speci
 ## Configuration
 Wisp reads a json formatted file named [wisp.json](https://raw.githubusercontent.com/dougives/wisp/master/wisp.json) for configuration. Here is a description of the keys:
 * `monitors`: Contains a list of devices to be configured as monitors. Each device contains subkeys describing their specific configuration:
-* `channel`: The channel for the device to monitor.
+  * `channel`: The channel for the device to monitor.
 * `injector`: The device to be configured to inject deauth frames.
 * `timing`: Lists several timing parameters, all given in milliseconds:
   * `delay`: The delay between deauth packets sent, per client.
