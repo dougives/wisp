@@ -25,7 +25,7 @@ I personally use [ConnectBot](https://connectbot.org/) with [Hacker's Keyboard](
 
 I suggest that the device be configured to automatically connect to a VPN that you host, to avoid any routing/NAT issues. Setting up [OpenVPN](https://openvpn.net/) on a cloud host is the easiest way to achieve this. Be sure to use OpenVPN's `client-to-client` server configuration directive, or have forwarding configured otherwise.
 
-You will require some other method besides wifi for connecting the device to the internet, obviously. Cellular access is the simplest candidate. Unless you desire to pull packet captures of the device remotely, very little bandwidth (<100Kib/s) is required. You can get away with using a cheap "unlimited" data plan that restricts your speed after some amount of data is used.
+You will require some other method besides wifi for connecting the device to the internet, obviously. Cellular access is the simplest candidate. Unless you desire to pull packet captures from the device remotely, very little bandwidth (<100Kib/s) is required. You can get away with using a cheap "unlimited" data plan that restricts your speed after some amount of data is used.
 
 I have had MTU issues when running OpenVPN over cellular. The easiest remedy is to set your MTU to 1200 with `ip link set dev tunX mtu 1200`, where tunX is your tun device. You may have to use a different MTU depending on your network.
 
