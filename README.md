@@ -62,7 +62,7 @@ Dream is a tool for monitoring 802.11 traffic with a line-greppable output. It a
   * `s`: Station (STA).
   * `t`: Pcap timestamp.
 
-These fields are always printed in the same order, regardless of the order specified. (That is, `-bcst` is equivalent to `-svtb`.)
+These fields are always printed in the same order, regardless of the order specified. (That is, `-bcst` is equivalent to `-sctb`.)
 
 ## Configuration
 Wisp reads a json formatted file named [wisp.json](https://raw.githubusercontent.com/dougives/wisp/master/wisp.json) for configuration. Here is a description of the keys:
