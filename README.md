@@ -80,4 +80,6 @@ All parameters are loaded from `wisp.json`, so wisp is invoked simply: `python3 
 Wisp will automatically configure the radios as described in `wisp.json`. It will also disable rfkill and kill any interfering processes, similar to the behavior of `airmon-ng`.
 
 ## Output
+Wisp outputs a `.` for every deauth sent. This is a simple and effective way to ensure it is operating as expected.
+
 Wisp (through dream) will output pcap files prefixed with the name of the radio (phy) which captured the packets, along with a random hexadecimal string, ending in `.cap`. Something like `phy0-8cf9ec5ca146943f.cap`, for example. You can then inspect, parse, and manipulate them with any regular tools for pcap files.
