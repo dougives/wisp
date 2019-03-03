@@ -1,4 +1,4 @@
-# Installing Wasp on a Raspberry Pi
+# Installing Wisp on a Raspberry Pi
 
 ## Bootstrapping
 ### Update:
