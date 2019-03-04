@@ -79,6 +79,8 @@ All parameters are loaded from `wisp.json`, so wisp is invoked simply: `python3 
 
 Wisp will automatically configure the radios as described in `wisp.json`. It will also disable rfkill and kill any interfering processes, similar to the behavior of `airmon-ng`.
 
+Wisp renames the specified devices with the format `wispX` where X is the number associated with the phy. It will rename the devices back to their original names when exiting.
+
 ## Output
 Wisp outputs a `.` for every deauth sent. This is a simple and effective way to ensure it is operating as expected.
 
