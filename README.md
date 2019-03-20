@@ -75,7 +75,7 @@ Wisp reads a json formatted file named [wisp.json](https://raw.githubusercontent
   * `stale`: Amount of time a client is not seen before being removed from the delay list. Has little practical effect unless it is close to the delay timespan.
 
 ## Invocation
-All parameters are loaded from `wisp.json`, so wisp is invoked simply: `python3 ./wisk.py`
+All parameters are loaded from `wisp.json`, so wisp is invoked simply: `python3 ./wisp.py`
 
 Wisp will automatically configure the radios as described in `wisp.json`. It will also disable rfkill and kill any interfering processes, similar to the behavior of `airmon-ng`.
 
