@@ -309,7 +309,7 @@ class Wisp:
                 if bss == sta:
                     continue
                 ###########################
-                # if sta != 'f0ee10bf2db0':#'44850074234a':#'f0ee10bf2db0':
+                # if sta != '000000000000'
                 #     continue
                 ###########################
                 def has_expired(chan, bss, sta):
